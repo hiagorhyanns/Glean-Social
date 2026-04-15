@@ -13,7 +13,7 @@ app.get('/test', async (req, res) => {
   let browser;
 
   try {
-    const executablePath = await chromium.executablePath;
+    const executablePath = await chromium.executablePath(); // ✅ CORRETO
 
     browser = await puppeteer.launch({
       args: chromium.args,
