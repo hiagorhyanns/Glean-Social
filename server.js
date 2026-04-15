@@ -1,13 +1,12 @@
-const express = require('express');
-
-const app = express();
-
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-  res.send('Servidor rodando 🚀');
-});
-
-app.listen(PORT, () => {
-  console.log('Server ON na porta ' + PORT);
-});
+{
+  "name": "glean-social",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^21.0.0"
+  }
+}
