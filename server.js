@@ -1,24 +1,25 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-
-// rota básica
 app.get('/', (req, res) => {
   res.send('Servidor rodando 🚀');
 });
 
-// teste puppeteer
 app.get('/test', async (req, res) => {
+  let browser;
+
   try {
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath(),
-      headless: true
+    browser = await puppeteer.launch({
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu'
+      ]
     });
 
     const page = await browser.newPage();
@@ -29,12 +30,16 @@ app.get('/test', async (req, res) => {
     await browser.close();
 
     res.json({ success: true, title });
+
   } catch (error) {
-    res.json({ success: false, error: error.message });
+    if (browser) await browser.close();
+    res.json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
-// start server
 app.listen(PORT, () => {
   console.log('Server ON na porta ' + PORT);
 });
