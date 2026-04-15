@@ -22,7 +22,7 @@ app.get('/test', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.goto('https://example.com');
+    await page.goto('https://example.com', { waitUntil: 'domcontentloaded' });
 
     const title = await page.title();
 
