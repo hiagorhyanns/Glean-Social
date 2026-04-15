@@ -1,5 +1,5 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -13,17 +13,17 @@ app.get('/test', async (req, res) => {
 
   try {
     browser = await puppeteer.launch({
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH,
       headless: true,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
+        '--disable-dev-shm-usage'
       ]
     });
 
     const page = await browser.newPage();
-    await page.goto('https://example.com', { waitUntil: 'domcontentloaded' });
+    await page.goto('https://example.com');
 
     const title = await page.title();
 
