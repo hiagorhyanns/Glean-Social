@@ -1,12 +1,13 @@
 const express = require('express');
 
 const app = express();
-app.use(express.json());
+
+const PORT = process.env.PORT || 3000;
 
 app.get('/', (req, res) => {
-  res.send('Servidor rodando');
+  res.send('Servidor rodando 🚀');
 });
 
-app.listen(3000, () => {
-  console.log('Server ON');
+app.listen(PORT, () => {
+  console.log('Server ON na porta ' + PORT);
 });
