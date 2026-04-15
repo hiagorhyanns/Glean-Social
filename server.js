@@ -1,5 +1,5 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -14,7 +14,6 @@ app.get('/test', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: '/usr/bin/chromium-browser', // caminho padrão Railway
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -24,7 +23,7 @@ app.get('/test', async (req, res) => {
     });
 
     const page = await browser.newPage();
-    await page.goto('https://example.com');
+    await page.goto('https://example.com', { waitUntil: 'domcontentloaded' });
 
     const title = await page.title();
 
@@ -37,8 +36,7 @@ app.get('/test', async (req, res) => {
 
     res.json({
       success: false,
-      error: error.message,
-      hint: 'Provavelmente Chromium não existe no ambiente Railway'
+      error: error.message
     });
   }
 });
