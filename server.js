@@ -4,12 +4,11 @@ const puppeteer = require('puppeteer');
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// rota base
 app.get('/', (req, res) => {
   res.send('Servidor rodando 🚀');
 });
 
-// rota de teste
+// TESTE
 app.get('/test', async (req, res) => {
   let browser;
 
@@ -19,8 +18,7 @@ app.get('/test', async (req, res) => {
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-blink-features=AutomationControlled'
+        '--disable-dev-shm-usage'
       ]
     });
 
@@ -34,10 +32,7 @@ app.get('/test', async (req, res) => {
 
     await browser.close();
 
-    res.json({
-      success: true,
-      title
-    });
+    res.json({ success: true, title });
 
   } catch (error) {
     if (browser) await browser.close();
@@ -49,7 +44,7 @@ app.get('/test', async (req, res) => {
   }
 });
 
-// rota instagram
+// INSTAGRAM
 app.get('/extract', async (req, res) => {
   const username = req.query.user;
 
@@ -72,40 +67,34 @@ app.get('/extract', async (req, res) => {
 
     const page = await browser.newPage();
 
-    // user-agent real
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
     );
 
     const cookies = JSON.parse(process.env.IG_COOKIES || '[]');
 
-    // abre instagram
     await page.goto('https://www.instagram.com/', {
       waitUntil: 'domcontentloaded'
     });
 
-    // aplica cookies
     if (cookies.length > 0) {
       await page.setCookie(...cookies);
     }
 
-    // recarrega com sessão
     await page.reload({
       waitUntil: 'networkidle2'
     });
 
-    // entra no perfil
     await page.goto(`https://www.instagram.com/${username}/`, {
       waitUntil: 'networkidle2'
     });
 
-    // verifica se caiu na tela de login
     const loginInput = await page.$('input[name="username"]');
+
     if (loginInput) {
       throw new Error('Não está logado (cookies inválidos)');
     }
 
-    // pega nome do perfil
     const name = await page.evaluate(() => {
       const el = document.querySelector('h2');
       return el ? el.innerText : null;
