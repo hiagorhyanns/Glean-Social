@@ -1,21 +1,25 @@
 const express = require('express');
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
+// caminho padrão do Chrome no Render
+const CHROME_PATH = '/opt/render/.cache/puppeteer/chrome/linux-121.0.6167.85/chrome-linux64/chrome';
 
 // rota base
 app.get('/', (req, res) => {
   res.send('Servidor rodando 🚀');
 });
 
-// rota de teste puppeteer
+// teste simples
 app.get('/test', async (req, res) => {
   let browser;
 
   try {
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: CHROME_PATH,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -46,7 +50,7 @@ app.get('/test', async (req, res) => {
   }
 });
 
-// rota principal (instagram)
+// rota instagram
 app.get('/extract', async (req, res) => {
   const username = req.query.user;
 
@@ -59,6 +63,7 @@ app.get('/extract', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: CHROME_PATH,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -69,7 +74,6 @@ app.get('/extract', async (req, res) => {
 
     const page = await browser.newPage();
 
-    // user-agent real
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
     );
@@ -84,7 +88,7 @@ app.get('/extract', async (req, res) => {
     // aplica cookies
     await page.setCookie(...cookies);
 
-    // recarrega logado
+    // recarrega já logado
     await page.reload({
       waitUntil: 'networkidle2'
     });
@@ -94,14 +98,13 @@ app.get('/extract', async (req, res) => {
       waitUntil: 'networkidle2'
     });
 
-    // valida se está logado
-    const isLoginPage = await page.$('input[name="username"]');
-
-    if (isLoginPage) {
+    // verifica login
+    const loginInput = await page.$('input[name="username"]');
+    if (loginInput) {
       throw new Error('Não está logado (cookies inválidos)');
     }
 
-    // pega nome
+    // pega nome do perfil
     const name = await page.evaluate(() => {
       const el = document.querySelector('h2');
       return el ? el.innerText : null;
