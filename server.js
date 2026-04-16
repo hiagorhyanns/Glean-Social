@@ -1,31 +1,34 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
-const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-const delay = (min = 800, max = 2000) =>
-  new Promise(r => setTimeout(r, Math.random() * (max - min) + min));
-
+// rota base
 app.get('/', (req, res) => {
-  res.send('OK');
+  res.send('Servidor rodando 🚀');
 });
 
+// rota de teste puppeteer
 app.get('/test', async (req, res) => {
   let browser;
 
   try {
-    const executablePath = await chromium.executablePath();
-
     browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath,
-      headless: chromium.headless
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled'
+      ]
     });
 
     const page = await browser.newPage();
-    await page.goto('https://example.com', { waitUntil: 'domcontentloaded' });
+
+    await page.goto('https://example.com', {
+      waitUntil: 'domcontentloaded'
+    });
 
     const title = await page.title();
 
@@ -35,89 +38,92 @@ app.get('/test', async (req, res) => {
 
   } catch (error) {
     if (browser) await browser.close();
-    res.json({ success: false, error: error.message });
+
+    res.json({
+      success: false,
+      error: error.message
+    });
   }
 });
 
+// rota principal (instagram)
 app.get('/extract', async (req, res) => {
   const username = req.query.user;
 
   if (!username) {
-    return res.json({ error: 'Passe ?user=' });
+    return res.json({ error: 'Informe ?user=' });
   }
 
   let browser;
 
   try {
-    const executablePath = await chromium.executablePath();
-
     browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath,
-      headless: chromium.headless
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-blink-features=AutomationControlled'
+      ]
     });
 
     const page = await browser.newPage();
 
-    // 🔐 aplica cookies (login)
-    if (process.env.IG_COOKIES) {
-      const cookies = JSON.parse(process.env.IG_COOKIES);
-      await page.setCookie(...cookies);
-    }
+    // user-agent real
+    await page.setUserAgent(
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
+    );
 
-    await page.goto(`https://www.instagram.com/${username}/`, {
+    const cookies = JSON.parse(process.env.IG_COOKIES || '[]');
+
+    // abre instagram
+    await page.goto('https://www.instagram.com/', {
       waitUntil: 'domcontentloaded'
     });
 
-    await delay(3000, 5000);
+    // aplica cookies
+    await page.setCookie(...cookies);
 
-    const btn = await page.$('a[href$="/followers/"]');
+    // recarrega logado
+    await page.reload({
+      waitUntil: 'networkidle2'
+    });
 
-    if (!btn) {
-      return res.json({
-        error: 'Não conseguiu abrir seguidores (cookie inválido ou não logado)'
-      });
+    // entra no perfil
+    await page.goto(`https://www.instagram.com/${username}/`, {
+      waitUntil: 'networkidle2'
+    });
+
+    // valida se está logado
+    const isLoginPage = await page.$('input[name="username"]');
+
+    if (isLoginPage) {
+      throw new Error('Não está logado (cookies inválidos)');
     }
 
-    await btn.click();
-    await delay(3000, 5000);
-
-    const users = new Map();
-
-    for (let i = 0; i < 10; i++) {
-      const data = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll('div[role="dialog"] li')).map(el => {
-          const username = el.querySelector('a')?.innerText;
-          const img = el.querySelector('img')?.src;
-          const name = el.querySelector('span')?.innerText;
-
-          return { username, img, name };
-        });
-      });
-
-      data.forEach(u => u.username && users.set(u.username, u));
-
-      await page.evaluate(() => {
-        const el = document.querySelector('div[role="dialog"] ul');
-        el.scrollTop += 500;
-      });
-
-      await delay(1500, 3000);
-    }
+    // pega nome
+    const name = await page.evaluate(() => {
+      const el = document.querySelector('h2');
+      return el ? el.innerText : null;
+    });
 
     await browser.close();
 
     res.json({
-      total: users.size,
-      data: Array.from(users.values())
+      success: true,
+      user: username,
+      name
     });
 
-  } catch (err) {
+  } catch (error) {
     if (browser) await browser.close();
-    res.json({ error: err.message });
+
+    res.json({
+      error: error.message
+    });
   }
 });
 
 app.listen(PORT, () => {
-  console.log('Server ON');
+  console.log('Server ON na porta ' + PORT);
 });
