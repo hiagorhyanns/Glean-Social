@@ -1,25 +1,21 @@
 const express = require('express');
-const puppeteer = require('puppeteer-core');
+const puppeteer = require('puppeteer');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-
-// caminho padrão do Chrome no Render
-const CHROME_PATH = '/opt/render/.cache/puppeteer/chrome/linux-121.0.6167.85/chrome-linux64/chrome';
 
 // rota base
 app.get('/', (req, res) => {
   res.send('Servidor rodando 🚀');
 });
 
-// teste simples
+// rota de teste
 app.get('/test', async (req, res) => {
   let browser;
 
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: CHROME_PATH,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -38,7 +34,10 @@ app.get('/test', async (req, res) => {
 
     await browser.close();
 
-    res.json({ success: true, title });
+    res.json({
+      success: true,
+      title
+    });
 
   } catch (error) {
     if (browser) await browser.close();
@@ -63,7 +62,6 @@ app.get('/extract', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       headless: true,
-      executablePath: CHROME_PATH,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -74,6 +72,7 @@ app.get('/extract', async (req, res) => {
 
     const page = await browser.newPage();
 
+    // user-agent real
     await page.setUserAgent(
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36'
     );
@@ -86,9 +85,11 @@ app.get('/extract', async (req, res) => {
     });
 
     // aplica cookies
-    await page.setCookie(...cookies);
+    if (cookies.length > 0) {
+      await page.setCookie(...cookies);
+    }
 
-    // recarrega já logado
+    // recarrega com sessão
     await page.reload({
       waitUntil: 'networkidle2'
     });
@@ -98,7 +99,7 @@ app.get('/extract', async (req, res) => {
       waitUntil: 'networkidle2'
     });
 
-    // verifica login
+    // verifica se caiu na tela de login
     const loginInput = await page.$('input[name="username"]');
     if (loginInput) {
       throw new Error('Não está logado (cookies inválidos)');
@@ -122,6 +123,7 @@ app.get('/extract', async (req, res) => {
     if (browser) await browser.close();
 
     res.json({
+      success: false,
       error: error.message
     });
   }
